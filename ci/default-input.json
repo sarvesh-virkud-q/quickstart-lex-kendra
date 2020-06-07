@@ -1,0 +1,26 @@
+[
+    {
+        "ParameterKey": "KendraIndexRole",
+        "ParameterValue": "$[taskcat_random-string]"
+    },
+    {
+        "ParameterKey": "KendraIndexPolicy",
+        "ParameterValue": "$[taskcat_random-string]"
+    },
+    {
+        "ParameterKey": "LambdaFunctionRole",
+        "ParameterValue": "$[taskcat_random-string]"
+    },
+    {
+        "ParameterKey": "LambdaFunctionPolicy",
+        "ParameterValue": "$[taskcat_random-string]"
+    },
+    {
+        "ParameterKey": "LexBotRole",
+        "ParameterValue": "$[taskcat_random-string]"
+    },
+    {
+        "ParameterKey": "LexBotPolicy",
+        "ParameterValue": "$[taskcat_random-string]"
+    }
+]

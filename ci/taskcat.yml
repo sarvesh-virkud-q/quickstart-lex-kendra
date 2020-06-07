@@ -1,0 +1,17 @@
+---
+global:
+  owner: sarvesh.virkud@quantiphi.com
+  qsname: quickstart-lex-kendra
+  regions:
+    - us-east-1
+    - us-west-2
+    - eu-west-1
+  reporting: true
+tests:
+  taskcat-json:
+    # parameter_input: default-input.json
+    regions:
+      - us-east-1
+      - us-west-2
+      - eu-west-1
+    template_file: Master_v2.template

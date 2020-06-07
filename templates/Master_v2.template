@@ -1,0 +1,251 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: A Sample template to understand what parent stack and child stack(This is the parent template)
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Lex bot configuration"
+        Parameters: 
+          - LexBotS3URL
+          - LexBotRole
+          - LexBotPolicy
+          - LexBotS3FileKey
+          - LexBotOpsFunctionName
+      - 
+        Label: 
+          default: "Kendra index configuration"
+        Parameters: 
+          - KendraIndexS3URL
+          - KendraIndexRole
+          - KendraIndexPolicy
+          - KendraIndexName
+          - KendraIndexEdition
+          - KendraS3BucketName
+          - KendraDataSourceName
+          - KendraFAQName
+          - KendraFAQFileKey
+      - 
+        Label: 
+          default: "Lambda configuration"
+        Parameters: 
+          - FallbackIntentS3URL
+          - LambdaFunctionRole
+          - LambdaFunctionPolicy
+          - LambdaFunctionName
+      - 
+        Label: 
+          default: "Deployment package configuration"
+        Parameters: 
+          - S3BucketName
+          - S3BucketKeyKendraIndexOps
+          - S3BucketKeyLexBotOps
+          - S3BucketKeyFallbackIntentHandler
+          - S3BucketLambdaLayerKey
+    ParameterLabels: 
+      LambdaFunctionRole: 
+        default: Role for fallback intent handling lambda
+      LambdaFunctionPolicy: 
+        default: Policy for fallback intent handling lambda
+      LambdaFunctionName: 
+        default: Name of fallback intent handling lambda
+      S3BucketName: 
+        default: S3 bucket which stores all code files
+      S3BucketKeyFallbackIntentHandler: 
+        default: S3 key which has the handler for Fallback Intent
+      S3BucketLambdaLayerKey: 
+        default: S3 key with Lambda layer libraries
+      LexBotRole: 
+        default: Role for Lex bot Ops
+      LexBotPolicy: 
+        default: Policy for Lex bot Ops
+      LexBotS3FileKey: 
+        default: S3 key for Lex bot JSON
+      S3BucketKeyLexBotOps: 
+        default: S3 key for Lex bot Ops
+      KendraIndexRole: 
+        default: Role for Kendra Ops
+      KendraIndexPolicy: 
+        default: Policy for Kendra Ops
+      S3BucketKeyKendraIndexOps: 
+        default: S3 key for Kendra Index Ops
+      KendraS3BucketName: 
+        default: S3 bucket with documents
+      KendraIndexName: 
+        default: Kendra Index Name
+      KendraIndexEdition: 
+        default: Kendra Index Edition
+      KendraDataSourceName: 
+        default: Data source name for Kendra Index
+      KendraFAQName: 
+        default: FAQ name for Kendra
+      KendraFAQFileKey: 
+        default: S3 key for FAQs
+
+
+Resources:
+  KendraIndexStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: !Ref KendraIndexS3URL
+      Parameters:
+        KendraIndexRole: !Ref KendraIndexRole
+        KendraIndexPolicy: !Ref KendraIndexPolicy
+        S3BucketKeyKendraIndexOps: !Ref S3BucketKeyKendraIndexOps
+        KendraS3BucketName: !Ref KendraS3BucketName
+        KendraIndexName: !Ref KendraIndexName
+        KendraIndexEdition: !Ref KendraIndexEdition
+        KendraDataSourceName: !Ref KendraDataSourceName
+        KendraFAQName: !Ref KendraFAQName
+        KendraFAQFileKey: !Ref KendraFAQFileKey
+        S3BucketLambdaLayerKey: !Ref S3BucketLambdaLayerKey
+        S3BucketName: !Ref S3BucketName
+
+  FallbackIntentStack:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: KendraIndexStack
+    Properties:
+      TemplateURL: !Ref FallbackIntentS3URL
+      Parameters:
+        LambdaFunctionRole: !Ref LambdaFunctionRole
+        LambdaFunctionPolicy: !Ref LambdaFunctionPolicy
+        LambdaFunctionName: !Ref LambdaFunctionName
+        S3BucketName: !Ref S3BucketName
+        S3BucketKeyFallbackIntentHandler: !Ref S3BucketKeyFallbackIntentHandler
+
+  LexBotStack:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: FallbackIntentStack
+    Properties:
+      TemplateURL: !Ref LexBotS3URL
+      Parameters: 
+        LexBotRole: !Ref LexBotRole
+        LexBotPolicy: !Ref LexBotPolicy
+        LexBotS3FileKey: !Ref LexBotS3FileKey
+        S3BucketKeyLexBotOps: !Ref S3BucketKeyLexBotOps
+        S3BucketLambdaLayerKey: !Ref S3BucketLambdaLayerKey
+        S3BucketName: !Ref S3BucketName
+        LambdaFunctionARN: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaFunctionName}"
+        LexBotOpsFunctionName: !Ref LexBotOpsFunctionName
+
+Parameters:
+  KendraIndexS3URL:
+    Description: Kendra Index template URL
+    Type: String
+    Default: https://lex-kendra-code.s3.amazonaws.com/kendra_test.yaml #URL
+
+  KendraIndexRole:
+    Description: Kendra Index IAM Role Name 
+    Type: String
+    Default: Kendra-Index-Role
+
+  KendraIndexPolicy:
+    Description: Kendra Index IAM Policy Name 
+    Type: String
+    Default: Kendra-Index-Policy
+
+  S3BucketKeyKendraIndexOps:
+    Description: The name of the S3 Key which has the Lambda Code for creation of Index
+    Type: String
+    Default: kendra_custom_resource.zip
+  
+  KendraS3BucketName:
+    AllowedPattern: ^[a-z0-9][a-z0-9-.]*$
+    Description: The name of the S3 bucket which has the Kendra Docs for syncing
+    Type: String
+    Default: lex-kendra-data
+
+  KendraIndexName:
+    Description: The name of the Kendra Index
+    Type: String
+    Default: Lex-Kendra-Covid-Bot-Index-v4
+
+  KendraIndexEdition:
+    Description: Kendra Index Edition (DEVELOPER_EDITION or ENTERPRISE_EDITION)
+    Type: String
+    AllowedValues: 
+      - DEVELOPER_EDITION
+      - ENTERPRISE_EDITION
+    Default: DEVELOPER_EDITION
+
+  KendraDataSourceName:
+    Description: The name of Data Source for the Kendra Index
+    Type: String
+    Default: lex-kendra-covid-bot-data-source
+
+  KendraFAQName:
+    Description: The name of FAQs for the Kendra Index
+    Type: String
+    Default: lex-kendra-covid-bot-faqs
+
+  KendraFAQFileKey:
+    Description: The file where FAQs are stored for the Kendra Index
+    Type: String
+    Default: COVID_FAQ_2.csv
+
+  LambdaFunctionRole:
+    Description: Lambda Function IAM Role Name 
+    Type: String
+    Default: Lambda-Function-Role
+
+  FallbackIntentS3URL:
+    Description: Fallback Intent S3 template URL
+    Type: String
+    Default: https://lex-kendra-code.s3.amazonaws.com/lambda_test.yaml
+
+  LambdaFunctionPolicy:
+    Description: Lambda Function IAM Policy Name 
+    Type: String
+    Default: Lambda-Function-Policy
+
+  LambdaFunctionName:
+    Description: The name of Lambda Function which handles querying of the index
+    Type: String
+    Default: lex-kendra-covid-bot-template
+  
+  S3BucketName:
+    AllowedPattern: ^[a-z0-9][a-z0-9-.]*$
+    Description: The name of S3 Bucket in which Lambda code is present
+    Type: String
+    Default: lex-kendra-code
+  
+  S3BucketKeyFallbackIntentHandler:
+    Description: The name of the S3 key which has the Lambda Code for handling Fallback Intent
+    Type: String
+    Default: lex_kendra_bot.zip
+
+  S3BucketLambdaLayerKey:
+    Description: The name of the S3 key which has the Layer libraries
+    Type: String
+    Default: layer.zip
+
+  LexBotS3URL:
+    Description: Lex Bot S3 template URL
+    Type: String
+    Default: https://lex-kendra-code.s3.amazonaws.com/lex_test_v2.yaml
+
+  LexBotRole:
+    Description: Lex Bot IAM Role Name 
+    Type: String
+    Default: Lex-Bot-Role
+
+  LexBotPolicy:
+    Description: Lex Bot IAM Policy Name 
+    Type: String
+    Default: Lex-Bot-Policy
+  
+  LexBotS3FileKey:
+    Description: The S3 file key where Lex Bot JSON is stored
+    Type: String
+    Default: covid_bot_connect_Export.json
+
+  S3BucketKeyLexBotOps:
+    Description: The S3 file key of the Lambda Code for Lex Bot Operations
+    Type: String
+    Default: lex_bot_custom_resource.zip
+
+  LexBotOpsFunctionName:
+    Description: Name of lambda function responsible for lex bot setup
+    Type: String
+    Default: LexBotOpsFunction
+
